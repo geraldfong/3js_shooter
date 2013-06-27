@@ -16,7 +16,6 @@ $(function() {
   init();
   animate();
 
-
   function init() {
 
     camera = new THREE.PerspectiveCamera(VIEW_ANGLE, ASPECT, NEAR, FAR);
@@ -63,10 +62,6 @@ $(function() {
     cylinder.position.z = -800;
     cylinder.position.y = 1000;
     scene.add(cylinder);
-
-
-
-
 
     renderer = new THREE.CanvasRenderer();
     renderer.setSize(WIDTH, HEIGHT);
