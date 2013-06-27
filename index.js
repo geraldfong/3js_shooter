@@ -6,15 +6,45 @@ $(function() {
   var VIEW_ANGLE = 75;
   var ASPECT = WIDTH / HEIGHT;
   var NEAR = 0.01;
-  var FAR = 30700;
+  var FAR = 1000;
 
   var renderer, scene;
 
   var sphere, cube;
   var beams = [];
 
+  var players = {};
+
+  var id;
+
   init();
   animate();
+  serverCommunicate()
+
+  function serverCommunicate() {
+    id = "user_" + Math.floor(Math.random() * 10000);
+    
+    
+    jQuery.get("http://geraldfong.com:3000/register", {
+      id: id
+    }, function(data, textStatus) {
+      console.log(data, textStatus);
+    });
+
+    //pollServer()
+  }
+
+  function pollServer() {
+    jQuery.get("http://geraldfong.com:3000", {
+      id: id,
+      coord: camera.position
+    }, function(data, textStatus) {
+      players = data.players;
+    });
+    setTimeout(pollServer, 1000);
+  }
+
+  
 
   function init() {
 
