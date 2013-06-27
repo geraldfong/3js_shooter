@@ -6,7 +6,7 @@ $(function() {
   var VIEW_ANGLE = 75;
   var ASPECT = WIDTH / HEIGHT;
   var NEAR = 0.01;
-  var FAR = 30700;
+  var FAR = 800;
 
   var renderer, scene;
 
@@ -15,6 +15,7 @@ $(function() {
 
   init();
   animate();
+  talkToServer();
 
   function init() {
 
@@ -84,6 +85,21 @@ $(function() {
     scene.add(beam);
   }
 
+  function boomerang() {
+    var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x0000FF, wireframe: true });
+
+    var beam = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 20, 10, 10), cubeMaterial);
+    beam.position.z = camera.position.z;
+    beam.position.y = camera.position.y;
+    beam.position.x = camera.position.x;
+    beam.position.s = 50;
+    beam.position.dz = beam.position.s * Math.cos(camera.rotation.y) * -1;
+    beam.position.dx = beam.position.s * Math.sin(camera.rotation.y) * -1;
+
+    beams.push(beam);
+    scene.add(beam);
+  }
+
 
   function animate() {
     requestAnimationFrame( animate );
@@ -114,6 +130,16 @@ $(function() {
     camera.position.y = Math.max(-50, camera.position.y);
     camera.position.dy -= 0.3;
 
+  }
+
+  function talkToServer() {
+    var id = "user_" + parseInt(Math.random() * 100000)
+    $.get("http://localhost:3000", {
+      id: id
+    }, function(data, textStatus) {
+      console.log("Received data", data);
+      console.log("Textstatus, ", textStatus);
+    });
   }
 
   var KEYS = {
