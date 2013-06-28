@@ -25,21 +25,33 @@ $(function() {
     id = "user_" + Math.floor(Math.random() * 10000);
     
     
-    jQuery.get("http://geraldfong.com:3000/register", {
-      id: id
+    jQuery.get("http://geraldfong.com/shooter/api/register", {
+      player: {
+        id: id,
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z
+      }
     }, function(data, textStatus) {
-      console.log(data, textStatus);
+      console.log("In here");
+      console.log(data);
+      players = data;
     });
 
-    //pollServer()
+    pollServer()
   }
 
   function pollServer() {
-    jQuery.get("http://geraldfong.com:3000", {
-      id: id,
-      coord: camera.position
+    jQuery.get("http://geraldfong.com/shooter/api/poll", {
+      player: {
+        id: id,
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z
+      }
     }, function(data, textStatus) {
-      players = data.players;
+      players = data;
+      console.log(players);
     });
     setTimeout(pollServer, 1000);
   }
