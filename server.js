@@ -6,6 +6,7 @@ app.get('/shooter/api', function(req, res) {
 });
 
 var players = {};
+var bullets = {};
 
 app.get('/shooter/api/register', function(req, res) {
   console.log(req.url);
@@ -14,14 +15,26 @@ app.get('/shooter/api/register', function(req, res) {
   players[id] = player;
 
   console.log(players);
-  res.send(players);
+  res.send( {
+    players: players,
+    bullets: bullets
+  });
 });
 
 app.get('/shooter/api/poll', function(req, res) {
   var player = req.query.player;
   var id = player.id;
   players[id] = player;
-  console.log(players);
-  res.send(players);
+
+  var bulletsData = req.query.bullets;
+  for (bulletId in bulletsData) {
+    bullets[bulletId] = bulletsData[bulletId];
+  }
+  data = {
+    players: players,
+    bullets: bullets
+  };
+  console.log(data);
+  res.send(data);
 });
 app.listen(3000);

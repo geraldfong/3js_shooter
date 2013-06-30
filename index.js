@@ -12,6 +12,7 @@ $(function() {
 
   var sphere, cube;
   var beams = [];
+  bullets = {};
 
   var players = {};
 
@@ -33,30 +34,95 @@ $(function() {
         z: camera.position.z
       }
     }, function(data, textStatus) {
-      console.log("In here");
-      console.log(data);
-      players = data;
     });
 
     pollServer()
   }
 
   function pollServer() {
+    bulletsData = {};
+    for (bulletId in bullets) {
+      if (!bullets.hasOwnProperty(bulletId)) {
+        continue;
+      }
+      bullet = bullets[bulletId];
+      if (bullet.playerId != id) {
+        continue;
+      }
+      bulletsData[bulletId] = {
+        id: bulletId,
+        x: bullet.position.x,
+        y: bullet.position.y,
+        z: bullet.position.z,
+        playerId: id
+      }
+    }
     jQuery.get("http://geraldfong.com/shooter/api/poll", {
       player: {
         id: id,
         x: camera.position.x,
         y: camera.position.y,
         z: camera.position.z
-      }
+      },
+      bullets: bulletsData
     }, function(data, textStatus) {
-      players = data;
-      console.log(players);
-    });
-    setTimeout(pollServer, 1000);
-  }
+      playersData = data.players;
+      bulletsData = data.bullets;
+      console.log(bulletsData);
+      for (var playerId in playersData) {
+        if (!playersData.hasOwnProperty(playerId)) {
+          continue;
+        }
+        if (playerId == id) {
+          continue;
+        }
+        playerData = playersData[playerId];
+        if (playerId in players) {
+          player = players[playerId];
+          player.position.x = playerData.x;
+          player.position.y = playerData.y;
+          player.position.z = playerData.z;
+        } else {
+          var playerMaterial = new THREE.MeshBasicMaterial({ color: 0x00FF00, wireframe: true });
+          var player = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 100, 10, 10), playerMaterial);
+          player.position.x = playerData.x;
+          player.position.y = playerData.y;
+          player.position.z = playerData.z;
+          players[playerId] = player;
+          scene.add(player);
+        }
+      }
 
-  
+      for (var bulletId in bulletsData) {
+        if (!bulletsData.hasOwnProperty(bulletId)) {
+          continue;
+        }
+        var bulletsData = bulletsData[bulletId];
+        if (bulletsData.playerId == id) {
+          continue;
+        }
+        console.log("Current Id");
+        if (bulletId in bullets) {
+          bullet = bullets[bulletId];
+          bullet.position.x = bulletsData.x;
+          bullet.position.y = bulletsData.y;
+          bullet.position.z = bulletsData.z;
+        } else {
+          console.log("Adding bullet for first time");
+          var bulletMaterial = new THREE.MeshBasicMaterial({ color: 0x25AA00, wireframe: true });
+          var bullet = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 20, 10, 10), bulletMaterial);
+          bullet.id = bulletsData.id;
+          bullet.playerId = bulletsData.playerId;
+          bullet.position.x = bulletsData.x;
+          bullet.position.y = bulletsData.y;
+          bullet.position.z = bulletsData.z;
+          bullets[bulletId] = bullet;
+          scene.add(bullet);
+        }
+      }
+    });
+    setTimeout(pollServer, 3000);
+  }
 
   function init() {
 
@@ -112,18 +178,20 @@ $(function() {
   }
 
   function shoot() {
-    var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00FF00, wireframe: true });
+    var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xABCDEF, wireframe: true });
 
-    var beam = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 20, 10, 10), cubeMaterial);
-    beam.position.z = camera.position.z;
-    beam.position.y = camera.position.y;
-    beam.position.x = camera.position.x;
-    beam.position.s = 50;
-    beam.position.dz = beam.position.s * Math.cos(camera.rotation.y) * -1;
-    beam.position.dx = beam.position.s * Math.sin(camera.rotation.y) * -1;
+    var bullet = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 20, 10, 10), cubeMaterial);
+    bullet.position.z = camera.position.z;
+    bullet.position.y = camera.position.y;
+    bullet.position.x = camera.position.x;
+    bullet.position.s = 0.3;
+    bullet.position.dz = bullet.position.s * Math.cos(camera.rotation.y) * -1;
+    bullet.position.dx = bullet.position.s * Math.sin(camera.rotation.y) * -1;
+    bullet.id = "bullet_" + Math.floor(Math.random() * 10000000);
+    bullet.playerId = id;
 
-    beams.push(beam);
-    scene.add(beam);
+    bullets[bullet.id] = bullet;
+    scene.add(bullet);
   }
 
 
@@ -136,11 +204,18 @@ $(function() {
     cube.rotation.y += 0.01;
     cube2.rotation.x += 0.01;
     cube2.rotation.y += 0.01;
-    for( var i = 0; i < beams.length; i++) {
-      var beam = beams[i];
-      beam.position.z += beam.position.dz;
-      beam.position.x += beam.position.dx;
+    for (var bulletId in bullets) {
+      if (!bullets.hasOwnProperty(bulletId)) {
+        continue;
+      }
+      var bullet = bullets[bulletId];
+      if (bullet.playerId != id) {
+        continue;
+      }
+      bullet.position.z += bullet.position.dz;
+      bullet.position.x += bullet.position.dx;
     }
+
     renderer.render(scene, camera);
 
     camera.rotation.y += camera.rotation.dy;
