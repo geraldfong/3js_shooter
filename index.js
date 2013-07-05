@@ -12,10 +12,125 @@ $(function() {
 
   var sphere, cube;
   var beams = [];
+  var bullets = {};
+
+  var players = {};
+
+  var cageSize = 750;
+
+  view = {
+    theta: 0,
+    phi: Math.PI/2,
+    dtheta: 0,
+    dphi: 0
+  };
+
+  var id;
 
   init();
   animate();
-  talkToServer();
+  serverCommunicate()
+
+  function serverCommunicate() {
+    id = "user_" + Math.floor(Math.random() * 10000);
+    
+    
+    jQuery.get("http://geraldfong.com/shooter/api/register", {
+      player: {
+        id: id,
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z
+      }
+    }, function(data, textStatus) {
+    });
+
+    pollServer()
+  }
+
+  function pollServer() {
+    bulletsData = {};
+    for (bulletId in bullets) {
+      if (!bullets.hasOwnProperty(bulletId)) {
+        continue;
+      }
+      bullet = bullets[bulletId];
+      if (bullet.playerId != id) {
+        continue;
+      }
+      bulletsData[bulletId] = {
+        id: bulletId,
+        x: bullet.position.x,
+        y: bullet.position.y,
+        z: bullet.position.z,
+        playerId: id
+      }
+    }
+    jQuery.get("http://geraldfong.com/shooter/api/poll", {
+      player: {
+        id: id,
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z
+      },
+      bullets: bulletsData
+    }, function(data, textStatus) {
+      playersData = data.players;
+      bulletsData = data.bullets;
+      for (var playerId in playersData) {
+        if (!playersData.hasOwnProperty(playerId)) {
+          continue;
+        }
+        if (playerId == id) {
+          continue;
+        }
+        playerData = playersData[playerId];
+        if (playerId in players) {
+          player = players[playerId];
+          player.position.x = playerData.x;
+          player.position.y = playerData.y;
+          player.position.z = playerData.z;
+        } else {
+          var playerMaterial = new THREE.MeshBasicMaterial({ color: 0x00FF00, wireframe: true });
+          var player = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 100, 10, 10), playerMaterial);
+          player.position.x = playerData.x;
+          player.position.y = playerData.y;
+          player.position.z = playerData.z;
+          players[playerId] = player;
+          scene.add(player);
+        }
+      }
+
+      for (var bulletId in bulletsData) {
+        if (!bulletsData.hasOwnProperty(bulletId)) {
+          continue;
+        }
+        var bulletData = bulletsData[bulletId];
+        if (bulletData.playerId == id) {
+          continue;
+        }
+        if (bulletId in bullets) {
+          bullet = bullets[bulletId];
+          bullet.position.x = bulletData.x;
+          bullet.position.y = bulletData.y;
+          bullet.position.z = bulletData.z;
+        } else {
+          console.log("Adding bullet for first time");
+          var bulletMaterial = new THREE.MeshBasicMaterial({ color: 0x25AA00, wireframe: true });
+          var bullet = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 20, 10, 10), bulletMaterial);
+          bullet.id = bulletData.id;
+          bullet.playerId = bulletData.playerId;
+          bullet.position.x = bulletData.x;
+          bullet.position.y = bulletData.y;
+          bullet.position.z = bulletData.z;
+          bullets[bulletId] = bullet;
+          scene.add(bullet);
+        }
+      }
+    });
+    setTimeout(pollServer, 3000);
+  }
+>>>>>>> 2fa0169e017655d31b25d0d9a5374e2399969f81
 
   function init() {
 
@@ -53,16 +168,44 @@ $(function() {
     scene.add(cube3);
     cube3.position.x = -200;
     cube3.position.z = 200;
-    groundMaterial = new THREE.MeshBasicMaterial( {color: 0x00aaff, wireframe: true});
-    ground = new THREE.Mesh(new THREE.CubeGeometry(10000, 10000, 20, 70, 70), groundMaterial);
-    ground.position.y -= 120;
-    ground.rotation.x += Math.PI / 2;
-    scene.add(ground);
 
-    cylinder = new THREE.Mesh(new THREE.CylinderGeometry(500, 500, 2000, 10, 80), cubeMaterial);
-    cylinder.position.z = -800;
-    cylinder.position.y = 1000;
-    scene.add(cylinder);
+    var wallMaterial = new THREE.MeshBasicMaterial( {color: 0x00daff, wireframe: true});
+    // positive x
+    wall1 = new THREE.Mesh(new THREE.CubeGeometry(cageSize, cageSize, 0, 10, 10), wallMaterial);
+    wall1.position.y += cageSize/2;
+    wall1.position.z += cageSize/2;
+    scene.add(wall1);
+
+    // negative x
+    wall2 = new THREE.Mesh(new THREE.CubeGeometry(cageSize, cageSize, 0, 10, 10), wallMaterial);
+    wall2.position.y += cageSize/2;
+    wall2.position.z -= cageSize/2;
+    scene.add(wall2);
+
+    // positive z
+    wall3 = new THREE.Mesh(new THREE.CubeGeometry(cageSize, cageSize, 0, 10, 10), wallMaterial);
+    wall3.rotation.y += Math.PI/2;
+    wall3.position.y += cageSize/2;
+    wall3.position.x += cageSize/2;
+    scene.add(wall3);
+
+    // negative z
+    wall4 = new THREE.Mesh(new THREE.CubeGeometry(cageSize, cageSize, 0, 10, 10), wallMaterial);
+    wall4.rotation.y += Math.PI/2;
+    wall4.position.y += cageSize/2;
+    wall4.position.x -= cageSize/2;
+    scene.add(wall4);
+
+    // positive y
+    wall5 = new THREE.Mesh(new THREE.CubeGeometry(cageSize, cageSize, 0, 10, 10), wallMaterial);
+    wall5.position.y += cageSize;
+    wall5.rotation.x += Math.PI / 2;
+    scene.add(wall5);
+
+    // low y
+    wall6 = new THREE.Mesh(new THREE.CubeGeometry(cageSize, cageSize, 0, 10, 10), wallMaterial);
+    wall6.rotation.x += Math.PI / 2;
+    scene.add(wall6);
 
     renderer = new THREE.CanvasRenderer();
     renderer.setSize(WIDTH, HEIGHT);
@@ -71,18 +214,22 @@ $(function() {
   }
 
   function shoot() {
-    var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0x00FF00, wireframe: true });
+    var cubeMaterial = new THREE.MeshBasicMaterial({ color: 0xABCDEF, wireframe: true });
 
-    var beam = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 20, 10, 10), cubeMaterial);
-    beam.position.z = camera.position.z;
-    beam.position.y = camera.position.y;
-    beam.position.x = camera.position.x;
-    beam.position.s = 50;
-    beam.position.dz = beam.position.s * Math.cos(camera.rotation.y) * -1;
-    beam.position.dx = beam.position.s * Math.sin(camera.rotation.y) * -1;
+    var bullet = new THREE.Mesh(new THREE.CylinderGeometry(20, 20, 20, 10, 10), cubeMaterial);
+    bullet.position.z = camera.position.z;
+    bullet.position.y = camera.position.y;
+    bullet.position.x = camera.position.x;
+    bullet.position.s = 6;
+    var coords = sphereToCart(view.theta, view.phi, 1);
+    bullet.position.dx = coords.x;
+    bullet.position.dy = coords.y;
+    bullet.position.dz = coords.z;
+    bullet.id = "bullet_" + Math.floor(Math.random() * 10000000);
+    bullet.playerId = id;
 
-    beams.push(beam);
-    scene.add(beam);
+    bullets[bullet.id] = bullet;
+    scene.add(bullet);
   }
 
   function boomerang() {
@@ -104,42 +251,47 @@ $(function() {
   function animate() {
     requestAnimationFrame( animate );
     sphere.position.x++;
-    sphere.rotation.x += 0.01;
-    sphere.rotation.y += 0.01;
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.01;
-    cube2.rotation.x += 0.01;
-    cube2.rotation.y += 0.01;
-    for( var i = 0; i < beams.length; i++) {
-      var beam = beams[i];
-      beam.position.z += beam.position.dz;
-      beam.position.x += beam.position.dx;
+    for (var bulletId in bullets) {
+      if (!bullets.hasOwnProperty(bulletId)) {
+        continue;
+      }
+      var bullet = bullets[bulletId];
+      if (bullet.playerId != id) {
+        continue;
+      }
+      bullet.position.x += bullet.position.dx;
+      bullet.position.y += bullet.position.dy;
+      bullet.position.z += bullet.position.dz;
+      if (bullet.position.x >= cageSize/2 || bullet.position.x <= -cageSize/2) {
+        bullet.position.dx *= -1;
+      }
+      if (bullet.position.y >= cageSize || bullet.position.y <= 0) {
+        bullet.position.dy *= -1;
+      }
+      if (bullet.position.z >= cageSize/2 || bullet.position.z <= -cageSize/2) {
+        bullet.position.dz *= -1;
+      }
     }
+
     renderer.render(scene, camera);
 
-    camera.rotation.y += camera.rotation.dy;
-    camera.rotation.x += camera.rotation.dp;
+    view.phi += view.dphi;
+    view.theta += view.dtheta;
+    camera.lookAt(sphereToCartVector(view.theta, view.phi, {
+      x: camera.position.x,
+      y: camera.position.y,
+      z: camera.position.z
+    }));
 
-
-    camera.position.x += camera.position.s * Math.sin(camera.rotation.y + Math.PI);
-    camera.position.z += camera.position.s * Math.cos(camera.rotation.y + Math.PI);
-    camera.position.x += camera.position.ps * Math.sin(camera.rotation.y + Math.PI + Math.PI/2);
-    camera.position.z += camera.position.ps * Math.cos(camera.rotation.y + Math.PI + Math.PI/2);
+    camera.position.x += camera.position.s * Math.cos(view.theta);
+    camera.position.z += camera.position.s * Math.sin(view.theta);
+    camera.position.x += camera.position.ps * Math.cos(view.theta + Math.PI/2);
+    camera.position.z += camera.position.ps * Math.sin(view.theta + Math.PI/2);
 
     camera.position.y += camera.position.dy;
-    camera.position.y = Math.max(-50, camera.position.y);
+    camera.position.y = Math.max(50, camera.position.y);
     camera.position.dy -= 0.3;
 
-  }
-
-  function talkToServer() {
-    var id = "user_" + parseInt(Math.random() * 100000)
-    $.get("http://localhost:3000", {
-      id: id
-    }, function(data, textStatus) {
-      console.log("Received data", data);
-      console.log("Textstatus, ", textStatus);
-    });
   }
 
   var KEYS = {
@@ -161,19 +313,19 @@ $(function() {
 
   $(document).keydown(function (e) {
     if (e.keyCode == KEYS.left) { // pan left
-      camera.rotation.dy = 0.018;
+      view.dtheta = -0.02;
     } else if (e.keyCode == KEYS.right) { // pan right
-      camera.rotation.dy = -0.018;
+      view.dtheta = 0.02;
     } else if (e.keyCode == KEYS.up) { // tilt up
-      camera.rotation.dp = 0.018;
+      view.dphi = -0.02;
     } else if (e.keyCode == KEYS.down) { // tilt down
-      camera.rotation.dp = -0.018;
+      view.dphi = 0.02;
     } else if (e.keyCode == KEYS.a ) { // strafe left
-      camera.position.ps = 4;
+      camera.position.ps = -4;
     } else if (e.keyCode == KEYS.w ) { // forward
       camera.position.s = 4;
     } else if (e.keyCode == KEYS.d) { // strafe right
-      camera.position.ps = -4;
+      camera.position.ps = 4;
     } else if (e.keyCode == KEYS.s) { // backwards
       camera.position.s = -4;
     }
@@ -189,13 +341,13 @@ $(function() {
 
   $(window).keyup(function (e) {
     if (e.keyCode == KEYS.left) { // pan left
-      camera.rotation.dy = 0;
+      view.dtheta = 0;
     } else if (e.keyCode == KEYS.right) { // pan right
-      camera.rotation.dy = 0;
+      view.dtheta = 0;
     } else if (e.keyCode == KEYS.up) { // tilt up
-      camera.rotation.dp = 0;
+      view.dphi = 0;
     } else if (e.keyCode == KEYS.down) { // tilt down
-      camera.rotation.dp = 0;
+      view.dphi = 0;
     } else if (e.keyCode == KEYS.a ) { // strafe left
       camera.position.ps = 0;
     } else if (e.keyCode == KEYS.w ) { // forward
@@ -207,4 +359,20 @@ $(function() {
     }
   });
 
+  function sphereToCartVector(theta, phi, current) {
+    var coords = sphereToCart(theta, phi, 1);
+
+    return new THREE.Vector3(coords.x + current.x, coords.y + current.y, coords.z + current.z);
+  }
+  
+  function sphereToCart(theta, phi, r) {
+    var x = r * Math.cos(theta) * Math.sin(phi);
+    var y = r * Math.cos(phi); 
+    var z = r * Math.sin(theta) * Math.sin(phi);
+    return {
+      x: x,
+      y: y,
+      z: z
+    }
+  }
 });
