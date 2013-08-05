@@ -130,7 +130,6 @@ $(function() {
     });
     setTimeout(pollServer, 3000);
   }
->>>>>>> 2fa0169e017655d31b25d0d9a5374e2399969f81
 
   function init() {
 
